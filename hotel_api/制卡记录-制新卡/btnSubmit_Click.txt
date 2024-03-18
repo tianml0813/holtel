@@ -1,0 +1,763 @@
+制卡示例代码（C#）：
+【btnSubmit_Click】点击事件代码
+源代码路径：hotelmanager\HotelManager\卡设置\Frm卡设置.cs
+对应的方法：btnSubmit_Click
+ 
+  private void btnSubmit_Click(object sender, EventArgs e)
+        {
+            settingcard = true;
+            if (Verification())
+            {
+                return;
+            }
+           if (cboxCardCategory.Text == "guest card" || cboxCardCategory.Text == "客人卡")
+            {
+                hotel_room model1 = new DAL_SQLite_hotel_room().GetSinglehotel_room(Convert.ToInt32(cboxRoom.SelectedValue));
+                if (model1.room_status == 2)
+                {
+                    if (MessageBox.Show("The room has been checked in. Do you need to make a card again", "message", MessageBoxButtons.YesNo) == DialogResult.Yes)
+                    {
+                        string str16 = GetStr16();
+                        try
+                        {
+                            //string returnmsg = string.Empty;
+                            //if (true)
+                            if (PortHelper.MakeCard(str16.ToString(), out string returnmsg))
+                            {
+                                hotel_room hr = cboxRoom.SelectedItem as hotel_room;
+                                hotel_makecard_log model = new hotel_makecard_log
+                                {
+                                    hotel_id = Program.user.hotel_id,
+                                    opertorid = Program.user.id,
+                                    opertor = Program.user.realname,
+                                    guest_name = "",
+                                    guest_phone = "",
+                                    serial_number = "1",
+                                    room_number = cboxRoom.Text,
+                                    room_id = Convert.ToInt32(cboxRoom.SelectedValue),
+                                    building = cboxBuilding.Text,
+                                    section = cboxSection.Text,
+                                    zone = cboxZone.Text,
+                                    operated_time = dtpOperatedDate.Value.ToString("yyyy-MM-dd HH:mm:ss"),
+                                    period_time = dtpPeriodDate.Value.ToString("yyyy-MM-dd HH:mm:ss"),
+                                    is_new = 1
+                                };
+switch (cboxCardCategory.Text)
+                                {
+                                    case "guest card":
+                                    case "客人卡":
+                                        model.card_type = "00";
+                                        break;
+
+                                    case "enable card":
+                                    case "使能卡":
+                                        model.card_type = "02";
+                                        break;
+
+                                    case "disable card":
+                                    case "禁用卡":
+                                        model.card_type = "03";
+                                        break;
+
+                                    case "section card":
+                                    case "服务区区卡":
+                                        model.card_type = "04";
+                                        break;
+
+                                    case "zone card":
+                                    case "区域卡":
+                                        model.card_type = "05";
+                                        break;
+
+                                    case "building card":
+                                    case "楼层卡":
+                                        model.card_type = "06";
+                                        break;
+
+                                    case "master card":
+                                    case "主管卡":
+                                        model.card_type = "07";
+                                        break;
+
+                                    case "emergency card":
+                                    case "紧急卡":
+                                        model.card_type = "08";
+                                        break;
+
+                                    case "communication card":
+                                    case "通信卡":
+                                        model.card_type = "09";
+                                        break;
+
+                                    case "time window card":
+                                    case "时间窗口卡":
+                                        model.card_type = "12";
+                                        break;
+
+                                    case "initialization card":
+                                    case "初始化卡":
+                                        model.card_type = "13";
+                                        break;
+
+                                    case "authorization card":
+                                    case "授权卡":
+                                        model.card_type = "15";
+                                        break;
+
+                                    case "disposable card":
+                                    case "一次性卡":
+                                        model.card_type = "17";
+                                        break;
+
+                                    case "decoder card":
+                                    case "解码卡":
+                                        model.card_type = "21";
+                                        break;
+
+                                    case "quick fix card":
+                                    case "快速修复卡":
+                                        model.card_type = "23";
+                                        break;
+
+                                }
+ResultMsg msg = new ResultMsg();
+                                if (MyCommon.IsConnectedToInternet())
+                                {
+                                    model.is_new = 0;
+                                    msg = new DAL_SQLite_hotel_makecard_log().Insert(model);
+                                    new DALhotel_makecard_log().Insert(model);
+                                }
+                                else
+                                {
+                                    msg = new DAL_SQLite_hotel_makecard_log().Insert(model);
+                                }
+
+                                if (msg.Success)
+                                {
+                                    if (cboxCardCategory.Text == "guest card" || cboxCardCategory.Text == "客人卡")
+                                    {
+                                        new DAL_SQLite_hotel_room().UpdateRoomStatus(new hotel_room { id = model.room_id, room_status = 2 });
+                                        new DALhotel_room().UpdateRoomStatus(new hotel_room { id = model.room_id, room_status = 2 });
+                                        BindData();
+                                    }
+                                    else
+                                    {
+                                        BindData();
+                                    }
+                                    MessageBox.Show("Business card printing success");
+                                }
+                                else
+                                {
+                                    MessageBox.Show("Business card printing fail");
+                                }
+                            }
+                            else
+                            {
+                                try
+                                {
+                                    Program.mkPort.Close();
+                                    Program.mkPort.Open();
+                                    if (!PortHelper.HandShake())
+                                    {
+                                        if (Program.ci == "en-US")
+                                        {
+                                            MessageBox.Show("The reader failed to connect. Please check whether the USB port is connected or unplug the power supply and connect it again.");
+                                        }
+                                        else
+                                        {
+                                            MessageBox.Show("读写器连接失败，请检查USB口是否连接 或 将电源拔出再次接电。");
+                                        }
+                                        btnSubmit.Visible = false;
+
+                                        btnCopy.Visible = false;
+                                        Program.mkPort.Close();
+                                    }
+                                }
+                                catch (Exception)
+                                {
+                                    if (Program.ci == "en-US")
+                                    {
+                                        MessageBox.Show("The reader failed to connect. Please check whether the USB port is connected or unplug the power supply and connect it again.");
+                                    }
+                                    else
+                                    {
+                                        MessageBox.Show("读写器连接失败，请检查USB口是否连接 或 将电源拔出再次接电。");
+                                    }
+                                    btnSubmit.Visible = false;
+                                    btnCopy.Visible = false;
+                                    Program.mkPort.Close();
+                                }
+                                if (returnmsg == "A0AA")
+                                {
+                                    MessageBox.Show("Business card printing fail,Please check whether the card is put in");
+                                }
+                                else if (string.IsNullOrEmpty(returnmsg))
+                                {
+                                    MessageBox.Show("Business card printing fail,Please check whether the power supply is connected normally");
+                                }
+                            }
+                        }
+                        catch (FormatException)
+                        {
+                            MessageBox.Show("Business card printing fail");
+                        }
+                    }
+                }
+                else
+                {
+                    string str16 = GetStr16();
+                    try
+                    {
+                        //string returnmsg = "";
+                        //if (true)
+                        if (PortHelper.MakeCard(str16.ToString(), out string returnmsg))
+                        {
+                            hotel_room hr = cboxRoom.SelectedItem as hotel_room;
+                            hotel_makecard_log model = new hotel_makecard_log
+                            {
+                                hotel_id = Program.user.hotel_id,
+                                opertorid = Program.user.id,
+                                opertor = Program.user.realname,
+                                guest_name = "",
+                                guest_phone = "",
+                                serial_number = "1",
+                                room_number = cboxRoom.Text,
+                                room_id = Convert.ToInt32(cboxRoom.SelectedValue),
+                                building = cboxBuilding.Text,
+                                section = cboxSection.Text,
+                                zone = cboxZone.Text,
+                                operated_time = dtpOperatedDate.Value.ToString("yyyy-MM-dd HH:mm:ss"),
+                                period_time = dtpPeriodDate.Value.ToString("yyyy-MM-dd HH:mm:ss"),
+                                is_new = 1
+                            };
+                            switch (cboxCardCategory.Text)
+                            {
+                                case "guest card":
+                                case "客人卡":
+                                    model.card_type = "00";
+                                    break;
+
+                                case "enable card":
+                                case "使能卡":
+                                    model.card_type = "02";
+                                    break;
+
+                                case "disable card":
+                                case "禁用卡":
+                                    model.card_type = "03";
+                                    break;
+
+                                case "section card":
+                                case "服务区区卡":
+                                    model.card_type = "04";
+                                    break;
+
+                                case "zone card":
+                                case "区域卡":
+                                    model.card_type = "05";
+                                    break;
+
+                                case "building card":
+                                case "楼层卡":
+                                    model.card_type = "06";
+                                    break;
+
+                                case "master card":
+                                case "主管卡":
+                                    model.card_type = "07";
+                                    break;
+
+                                case "emergency card":
+                                case "紧急卡":
+                                    model.card_type = "08";
+                                    break;
+
+                                case "communication card":
+                                case "通信卡":
+                                    model.card_type = "09";
+                                    break;
+
+                                case "time window card":
+                                case "时间窗口卡":
+                                    model.card_type = "12";
+                                    break;
+
+                                case "initialization card":
+                                case "初始化卡":
+                                    model.card_type = "13";
+                                    break;
+
+                                case "authorization card":
+                                case "授权卡":
+                                    model.card_type = "15";
+                                    break;
+
+                                case "disposable card":
+                                case "一次性卡":
+                                    model.card_type = "17";
+                                    break;
+
+                                case "decoder card":
+                                case "解码卡":
+                                    model.card_type = "21";
+                                    break;
+
+                                case "quick fix card":
+                                case "快速修复卡":
+                                    model.card_type = "23";
+                                    break;
+
+                            }
+                            ResultMsg msg = new ResultMsg();
+                            if (MyCommon.IsConnectedToInternet())
+                            {
+                                model.is_new = 0;
+                                msg = new DAL_SQLite_hotel_makecard_log().Insert(model);
+                                new DALhotel_makecard_log().Insert(model);
+                            }
+                            else
+                            {
+                                msg = new DAL_SQLite_hotel_makecard_log().Insert(model);
+                            }
+
+                            if (msg.Success)
+                            {
+                                if (cboxCardCategory.Text == "guest card" || cboxCardCategory.Text == "客人卡")
+                                {
+                                    string update_time = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                                    if (MyCommon.IsConnectedToInternet())
+                                    {
+                                        new DAL_SQLite_hotel_room().UpdateRoomStatus(new hotel_room { id = model.room_id, room_status = 2, is_new = 0, update_time = update_time });
+                                        new DALhotel_room().UpdateRoomStatus(new hotel_room { id = model.room_id, room_status = 2, is_new = 0, update_time = update_time });
+                                    }
+                                    else
+                                    {
+                                        new DAL_SQLite_hotel_room().UpdateRoomStatus(new hotel_room { id = model.room_id, room_status = 2, is_new = 2, update_time = update_time });
+                                    }
+                                    BindData();
+                                }
+                                else
+                                {
+                                    BindData();
+                                }
+                                MessageBox.Show("Business card printing success");
+                            }
+                            else
+                            {
+                                MessageBox.Show("Business card printing fail");
+                            }
+                        }
+                        else
+                        {
+                            try
+                            {
+                                Program.mkPort.Close();
+                                Program.mkPort.Open();
+                                if (!PortHelper.HandShake())
+                                {
+                                    if (Program.ci == "en-US")
+                                    {
+                                        MessageBox.Show("The reader failed to connect. Please check whether the USB port is connected or unplug the power supply and connect it again.");
+                                    }
+                                    else
+                                    {
+                                        MessageBox.Show("读写器连接失败，请检查USB口是否连接 或 将电源拔出再次接电。");
+                                    }
+                                    btnSubmit.Visible = false;
+
+                                    btnCopy.Visible = false;
+                                    Program.mkPort.Close();
+                                }
+                            }
+                            catch (Exception)
+                            {
+                                if (Program.ci == "en-US")
+                                {
+                                    MessageBox.Show("The reader failed to connect. Please check whether the USB port is connected or unplug the power supply and connect it again.");
+                                }
+                                else
+                                {
+                                    MessageBox.Show("读写器连接失败，请检查USB口是否连接 或 将电源拔出再次接电。");
+                                }
+                                btnSubmit.Visible = false;
+                                btnCopy.Visible = false;
+                                Program.mkPort.Close();
+                            }
+                            if (returnmsg == "A0AA")
+                            {
+                                MessageBox.Show("Business card printing fail,Please check whether the card is put in");
+                            }
+                            else if (string.IsNullOrEmpty(returnmsg))
+                            {
+                                MessageBox.Show("Business card printing fail,Please check whether the power supply is connected normally");
+                            }
+                        }
+                    }
+                    catch (FormatException)
+                    {
+                        MessageBox.Show("Business card printing fail");
+                    }
+                }
+            }
+            else
+            {
+                string str16 = GetStr16();
+                try
+                {
+                    //string returnmsg = "";
+                    //if (true)
+                    if (PortHelper.MakeCard(str16.ToString(), out string returnmsg))
+                    {
+                        hotel_room hr = cboxRoom.SelectedItem as hotel_room;
+                        hotel_makecard_log model = new hotel_makecard_log
+                        {
+                            hotel_id = Program.user.hotel_id,
+                            opertorid = Program.user.id,
+                            opertor = Program.user.realname,
+                            guest_name = "",
+                            guest_phone = "",
+                            serial_number = "1",
+                            room_number = cboxRoom.Text,
+                            room_id = Convert.ToInt32(cboxRoom.SelectedValue),
+                            building = cboxBuilding.Text,
+                            section = cboxSection.Text,
+                            zone = cboxZone.Text,
+                            operated_time = dtpOperatedDate.Value.ToString("yyyy-MM-dd HH:mm:ss"),
+                            period_time = dtpPeriodDate.Value.ToString("yyyy-MM-dd HH:mm:ss"),
+                            is_new = 1
+                        };
+                        switch (cboxCardCategory.Text)
+                        {
+                            case "guest card":
+                            case "客人卡":
+                                model.card_type = "00";
+                                break;
+
+                            case "enable card":
+                            case "使能卡":
+                                model.card_type = "02";
+                                break;
+
+                            case "disable card":
+                            case "禁用卡":
+                                model.card_type = "03";
+                                break;
+
+                            case "section card":
+                            case "服务区区卡":
+                                model.card_type = "04";
+                                break;
+
+                            case "zone card":
+                            case "区域卡":
+                                model.card_type = "05";
+                                break;
+
+                            case "building card":
+                            case "楼层卡":
+                                model.card_type = "06";
+                                break;
+
+                            case "master card":
+                            case "主管卡":
+                                model.card_type = "07";
+                                break;
+
+                            case "emergency card":
+                            case "紧急卡":
+                                model.card_type = "08";
+                                break;
+
+                            case "communication card":
+                            case "通信卡":
+                                model.card_type = "09";
+                                break;
+
+                            case "time window card":
+                            case "时间窗口卡":
+                                model.card_type = "12";
+                                break;
+
+                            case "initialization card":
+                            case "初始化卡":
+                                model.card_type = "13";
+                                break;
+
+                            case "authorization card":
+                            case "授权卡":
+                                model.card_type = "15";
+                                break;
+
+                            case "disposable card":
+                            case "一次性卡":
+                                model.card_type = "17";
+                                break;
+
+                            case "decoder card":
+                            case "解码卡":
+                                model.card_type = "21";
+                                break;
+
+                            case "quick fix card":
+                            case "快速修复卡":
+                                model.card_type = "23";
+                                break;
+
+                        }
+                        ResultMsg msg = new ResultMsg();
+                        if (MyCommon.IsConnectedToInternet())
+                        {
+                            model.is_new = 0;
+                            msg = new DAL_SQLite_hotel_makecard_log().Insert(model);
+                            new DALhotel_makecard_log().Insert(model);
+                        }
+                        else
+                        {
+                            msg = new DAL_SQLite_hotel_makecard_log().Insert(model);
+                        }
+
+                        if (msg.Success)
+                        {
+                            if (cboxCardCategory.Text == "guest card" || cboxCardCategory.Text == "客人卡")
+                            {
+                                new DAL_SQLite_hotel_room().UpdateRoomStatus(new hotel_room { id = model.room_id, room_status = 2 });
+                                new DALhotel_room().UpdateRoomStatus(new hotel_room { id = model.room_id, room_status = 2 });
+                                BindData();
+                            }
+                            else
+                            {
+                                BindData();
+                            }
+                            MessageBox.Show("Business card printing success");
+                        }
+                        else
+                        {
+                            MessageBox.Show("Business card printing fail");
+                        }
+                    }
+                    else
+                    {
+                        try
+                        {
+                            Program.mkPort.Close();
+                            Program.mkPort.Open();
+                            if (!PortHelper.HandShake())
+                            {
+                                if (Program.ci == "en-US")
+                                {
+                                    MessageBox.Show("The reader failed to connect. Please check whether the USB port is connected or unplug the power supply and connect it again.");
+                                }
+                                else
+                                {
+                                    MessageBox.Show("读写器连接失败，请检查USB口是否连接 或 将电源拔出再次接电。");
+                                }
+                                btnSubmit.Visible = false;
+
+                                btnCopy.Visible = false;
+                                Program.mkPort.Close();
+                            }
+                        }
+                        catch (Exception)
+                        {
+                            if (Program.ci == "en-US")
+                            {
+                                MessageBox.Show("The reader failed to connect. Please check whether the USB port is connected or unplug the power supply and connect it again.");
+                            }
+                            else
+                            {
+                                MessageBox.Show("读写器连接失败，请检查USB口是否连接 或 将电源拔出再次接电。");
+                            }
+                            btnSubmit.Visible = false;
+                            btnCopy.Visible = false;
+                            Program.mkPort.Close();
+                        }
+                        if (returnmsg == "A0AA")
+                        {
+                            MessageBox.Show("Business card printing fail,Please check whether the card is put in");
+                        }
+                        else if (string.IsNullOrEmpty(returnmsg))
+                        {
+                            MessageBox.Show("Business card printing fail,Please check whether the power supply is connected normally");
+                        }
+                    }
+                }
+                catch (FormatException)
+                {
+                    MessageBox.Show("Business card printing fail");
+                }
+            }
+
+
+
+        }
+
+
+
+【MakeCard】方法代码
+源代码路径：hotelmanager\HotelManager\PostHelper.cs   
+对应的方法：MakeCard
+public static bool MakeCard(string str16,out string returnmsg)
+        {
+            LogManage.WriteLog("开始制卡了");
+            LogManage.WriteLog("先关闭制卡器COM口连接");
+            Program.mkPort.Close();
+            LogManage.WriteLog("先打开制卡器COM口连接");
+            Program.mkPort.Open();
+            LogManage.WriteLog("发送A0 握手");
+
+            //握手
+            byte[] data = MyCommon.HexStringToByteArray("A0");
+            // Send the binary data out the port
+            Program.mkPort.Write(data, 0, data.Length);
+            Thread.Sleep(250);
+            LogManage.WriteLog("休眠了250毫秒");
+
+            //读取字节个数
+            int n = Program.mkPort.BytesToRead;
+            byte[] buf = new byte[n];
+            Program.mkPort.Read(buf, 0, n);
+
+            returnmsg = MyCommon.ByteArrayToHexString(buf).Replace(" ", "");
+            LogManage.WriteLog("返回值：" + returnmsg);
+    
+
+            if (returnmsg == "A0")
+            {
+                byte[] data1 = MyCommon.HexStringToByteArray(str16);
+                //Thread.Sleep(1000);
+                LogManage.WriteLog("开始输入制卡指令：" + str16);
+                // Send the binary data out the port
+                Program.mkPort.Write(data1, 0, data1.Length);
+                Thread.Sleep(250);
+
+                //读取字节个数
+               int n1 = Program.mkPort.BytesToRead;
+               byte[] buf1 = new byte[n1];
+                Program.mkPort.Read(buf1, 0, n1);
+                returnmsg = MyCommon.ByteArrayToHexString(buf1).Replace(" ", "");
+                LogManage.WriteLog("接收制卡回应：" + returnmsg);
+                LogManage.WriteLog("关闭制卡器COM口连接");
+
+                Program.mkPort.Close();
+                if (returnmsg != "AA"&& returnmsg != "A0AA")
+                {
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                return false;
+            }
+        }
+【DALhotel_makecard_log.Insert】方法
+ 源代码路径： \hotelmanager\HotelManager\卡设置\Frm卡设置.cs 
+对应的方法：实例化hotel_makecard_log 表数据，插入数据
+   if (MyCommon.IsConnectedToInternet())
+                            {
+                                model.is_new = 0;
+                                msg = new DAL_SQLite_hotel_makecard_log().Insert(model);
+                                new DALhotel_makecard_log().Insert(model);
+                            }
+                            else
+                            {
+                                msg = new DAL_SQLite_hotel_makecard_log().Insert(model);
+                            }
+
+
+
+【BindData】方法
+源代码路径：\hotelmanager\HotelManager\卡设置\Frm卡设置.cs 
+对应的方法：BindData
+数据绑定成功之后，弹出对应的提示，对应的卡信息制作完成
+  private void BindData()
+        {
+            string cardtype = string.Empty;
+            switch (cboxCardType.Text)
+            {
+                case "guest card":
+                case "客人卡":
+                    cardtype = "00";
+                    break;
+
+                case "enable card":
+                case "使能卡":
+                    cardtype = "02";
+                    break;
+
+                case "disable card":
+                case "禁用卡":
+                    cardtype = "03";
+                    break;
+
+                case "section card":
+                case "服务区区卡":
+                    cardtype = "04";
+                    break;
+
+                case "zone card":
+                case "区域卡":
+                    cardtype = "05";
+                    break;
+
+                case "building card":
+                case "楼层卡":
+                    cardtype = "06";
+                    break;
+
+                case "master card":
+                case "主管卡":
+                    cardtype = "07";
+                    break;
+
+                case "emergency card":
+                case "紧急卡":
+                    cardtype = "08";
+                    break;
+
+                case "communication card":
+                case "通信卡":
+                    cardtype = "09";
+                    break;
+
+                case "time window card":
+                case "时间窗口卡":
+                    cardtype = "12";
+                    break;
+
+                case "initialization card":
+                case "初始化卡":
+                    cardtype = "13";
+                    break;
+
+                case "authorization card":
+                case "授权卡":
+                    cardtype = "15";
+                    break;
+
+                case "disposable card":
+                case "一次性卡":
+                    cardtype = "17";
+                    break;
+
+                case "decoder card":
+                case "解码卡":
+                    cardtype = "21";
+                    break;
+
+                case "quick fix card":
+                case "快速修复卡":
+                    cardtype = "23";
+                    break;
+            }
+            dgv.DataSource = new DAL_SQLite_hotel_makecard_log().QueryList(new hotel_makecard_log
+            {
+                opertor = txtSearchOperator.Text,
+                start_date = dtpStart.Checked ? dtpStart.Value.ToString("yyyy-MM-dd HH:mm:ss") : "",
+                end_date = dtpEnd.Checked ? dtpEnd.Value.ToString("yyyy-MM-dd HH:mm:ss") : "",
+                card_type = cardtype
+            });
+}
